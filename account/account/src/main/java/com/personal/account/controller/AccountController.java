@@ -11,8 +11,10 @@ import org.springframework.web.bind.annotation.RestController;
 import com.personal.account.dto.request.AccountRequest;
 import com.personal.account.dto.request.CreateAccountRequest;
 import com.personal.account.dto.request.TransferAccountRequest;
+import com.personal.account.dto.request.WithdrawAccountRequest;
 import com.personal.account.dto.response.CreateAccountResponse;
 import com.personal.account.dto.response.TransferAccountResponse;
+import com.personal.account.dto.response.WithdrawAccountResponse;
 import com.personal.account.service.AccountService;
 
 @RestController
@@ -30,6 +32,11 @@ public class AccountController {
 	@PostMapping("/transfer/account")
 	public ResponseEntity<TransferAccountResponse> transferToAccount(@RequestBody TransferAccountRequest transferReq){
 		return ResponseEntity.ok(accountService.transferToAccount(transferReq));
+	}
+	
+	@PostMapping("/withdraw/account")
+	public ResponseEntity<WithdrawAccountResponse> withdrawFromAccount(@RequestBody WithdrawAccountRequest transferReq){
+		return ResponseEntity.ok(accountService.withdrawFromAccount(transferReq));
 	}
 	
 	@GetMapping("/account")

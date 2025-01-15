@@ -11,8 +11,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.personal.account.dto.request.CreateAccountRequest;
 import com.personal.account.dto.request.TransferAccountRequest;
+import com.personal.account.dto.request.WithdrawAccountRequest;
 import com.personal.account.dto.response.CreateAccountResponse;
 import com.personal.account.dto.response.TransferAccountResponse;
+import com.personal.account.dto.response.WithdrawAccountResponse;
 import com.personal.account.entity.AccountEntity;
 import com.personal.account.repository.AccountRepository;
 
@@ -75,6 +77,27 @@ public class AccountService {
 		transferAccountResponse.setMessage("money transferred successful to "+payee.get().getAccountHolderName()+" by "+payer.get().getAccountHolderName());
 		transferAccountResponse.setTransferredAmount(transferAccountRequest.getAmount());
 		return transferAccountResponse;
+	}
+	
+	public WithdrawAccountResponse withdrawFromAccount(WithdrawAccountRequest req) {
+		long accountNum=req.getAccountNum();
+		Optional<AccountEntity>accEntity=accountRepository.findById(accountNum);
+		if(!accEntity.get().getMpin().equalsIgnoreCase(req.getMpin())) {
+			throw new RuntimeException("wrong mpin");
+		}
+		if(accEntity.get().getBalance() < req.getAmount()) {
+			throw new RuntimeException("Insufficient Balance");
+		}
+		double currentbalance=accEntity.get().getBalance()-req.getAmount();
+		AccountEntity user=accEntity.get();
+		user.setBalance(user.getBalance()-req.getAmount());
+		user.setModifiedAt(LocalDateTime.now());
+		accountRepository.save(user);
+		
+		WithdrawAccountResponse response=new WithdrawAccountResponse();
+		response.setCurrentbalance(currentbalance);
+		response.setMessage("Amount "+req.getAmount()+" has been withdrawl from the user "+req.getAccountNum());
+		return response;
 	}
 	
 }
