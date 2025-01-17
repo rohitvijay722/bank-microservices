@@ -12,6 +12,11 @@ import com.personal.account.dto.ErrorDto;
 
 @RestControllerAdvice()
 public class AccountsExceptionHandler {
+	
+	@ExceptionHandler(NoAccountException.class)
+	public ResponseEntity<ErrorDto> handleRuntimeException(NoAccountException ex){
+		return new ResponseEntity(new ErrorDto(HttpStatus.SC_BAD_REQUEST, ex.getMessage(),LocalDateTime.now()),HttpStatusCode.valueOf(400));
+	}
 
 	@ExceptionHandler(RuntimeException.class)
 	public ResponseEntity<ErrorDto> handleRuntimeException(RuntimeException ex){

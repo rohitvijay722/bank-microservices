@@ -16,6 +16,7 @@ import com.personal.account.dto.response.CreateAccountResponse;
 import com.personal.account.dto.response.TransferAccountResponse;
 import com.personal.account.dto.response.WithdrawAccountResponse;
 import com.personal.account.entity.AccountEntity;
+import com.personal.account.exceptions.NoAccountException;
 import com.personal.account.repository.AccountRepository;
 
 
@@ -47,7 +48,7 @@ public class AccountService {
 		long payerAccountNum=transferAccountRequest.getPayerAccountNum();
 		Optional<AccountEntity> payer=accountRepository.findById(payerAccountNum);
 		if(payer.isEmpty()) {
-			throw new RuntimeException("No Payer Account Exist");
+			throw new NoAccountException("No Payer Account Exist");
 		}
 		if(!payer.get().getMpin().equalsIgnoreCase(transferAccountRequest.getMpin())) {
 			throw new RuntimeException("wrong mpin");
@@ -82,6 +83,9 @@ public class AccountService {
 	public WithdrawAccountResponse withdrawFromAccount(WithdrawAccountRequest req) {
 		long accountNum=req.getAccountNum();
 		Optional<AccountEntity>accEntity=accountRepository.findById(accountNum);
+		if(accEntity.isEmpty()) {
+			throw new NoAccountException("No Payer Account Exist");
+		}
 		if(!accEntity.get().getMpin().equalsIgnoreCase(req.getMpin())) {
 			throw new RuntimeException("wrong mpin");
 		}
