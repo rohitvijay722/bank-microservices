@@ -6,9 +6,12 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
+import com.personal.account.commons.CommonConstants;
+import com.personal.account.dto.Message;
 import com.personal.account.dto.request.CreateAccountRequest;
 import com.personal.account.dto.request.TransferAccountRequest;
 import com.personal.account.dto.request.WithdrawAccountRequest;
@@ -25,6 +28,10 @@ public class AccountService {
 	
 	@Autowired
 	private AccountRepository accountRepository;
+	
+	@Autowired
+	private KafkaTemplate< String, Message> kafkaTemplate;
+	
 
 	public CreateAccountResponse createAccount(CreateAccountRequest createAccountRequest) {
 		AccountEntity accountEntity=new AccountEntity();
@@ -36,6 +43,17 @@ public class AccountService {
 		accountEntity.setMpin(createAccountRequest.getMpin());
 		accountEntity.setCreatedAt(LocalDateTime.now());
 		accountRepository.save(accountEntity);
+		Message message=new Message();
+		message.setDesc("Account Created for "+createAccountRequest.getAccountHolderName()+" with account Number "+createAccountRequest.getAccountNum());
+		message.setHeader(CommonConstants.ACCOUNT_CREATED_HEADER);
+		var future = kafkaTemplate.send(CommonConstants.TOPIC_NAME, message);
+		future.whenComplete((sendResult,exception)->{
+			if(exception!=null) {
+				future.completeExceptionally(exception);
+			}else {
+				future.complete(sendResult);
+			}
+		});
 		CreateAccountResponse createAccountResponse = new CreateAccountResponse();
 		createAccountResponse.setAccountHolderName(accountEntity.getAccountHolderName());
 		createAccountResponse.setAccountNum(accountEntity.getAccountNum());
@@ -48,13 +66,13 @@ public class AccountService {
 		long payerAccountNum=transferAccountRequest.getPayerAccountNum();
 		Optional<AccountEntity> payer=accountRepository.findById(payerAccountNum);
 		if(payer.isEmpty()) {
-			throw new NoAccountException("No Payer Account Exist");
+			throw new NoAccountException(CommonConstants.NO_PAYEE_ACC_EXISTS);
 		}
 		if(!payer.get().getMpin().equalsIgnoreCase(transferAccountRequest.getMpin())) {
-			throw new RuntimeException("wrong mpin");
+			throw new RuntimeException(CommonConstants.WRONG_MPIN);
 		}
 		if(payer.get().getBalance()<transferAccountRequest.getAmount()) {
-			throw new RuntimeException("Insufficient Balance");
+			throw new RuntimeException(CommonConstants.INSUFFICIENT_BALANCE);
 		}
 		Optional<AccountEntity> payee=accountRepository.findById(payeeAccountNum);
 		if(payee.isEmpty()) {
@@ -84,13 +102,13 @@ public class AccountService {
 		long accountNum=req.getAccountNum();
 		Optional<AccountEntity>accEntity=accountRepository.findById(accountNum);
 		if(accEntity.isEmpty()) {
-			throw new NoAccountException("No Payer Account Exist");
+			throw new NoAccountException(CommonConstants.NO_PAYEE_ACC_EXISTS);
 		}
 		if(!accEntity.get().getMpin().equalsIgnoreCase(req.getMpin())) {
-			throw new RuntimeException("wrong mpin");
+			throw new RuntimeException(CommonConstants.WRONG_MPIN);
 		}
 		if(accEntity.get().getBalance() < req.getAmount()) {
-			throw new RuntimeException("Insufficient Balance");
+			throw new RuntimeException(CommonConstants.INSUFFICIENT_BALANCE);
 		}
 		double currentbalance=accEntity.get().getBalance()-req.getAmount();
 		AccountEntity user=accEntity.get();
